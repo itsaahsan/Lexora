@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: lexora-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: FAISS_INDEX_PATH
+        value: ./faiss_index
+      - key: UPLOAD_DIR
+        value: ./uploads
+      - key: ALLOWED_ORIGINS
+        value: '["https://lexora.onrender.com"]'
+
+  - type: static
+    name: lexora
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
