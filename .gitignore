@@ -1,0 +1,13 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.env
+uploads/
+faiss_index/
+*.db
+.pytest_cache/
+.vite/
+venv/
+*.egg-info/
+backend/venv/
