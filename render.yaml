@@ -7,7 +7,9 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: lexora-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: GEMINI_API_KEY
@@ -21,7 +23,7 @@ services:
       - key: UPLOAD_DIR
         value: ./uploads
       - key: ALLOWED_ORIGINS
-        value: '["https://lexora.onrender.com"]'
+        value: '["https://lexora-hha8.onrender.com"]'
 
   - type: static
     name: lexora
@@ -35,3 +37,11 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: VITE_API_URL
+        value: "https://lexora-backend-bkk4.onrender.com/api"
+
+databases:
+  - name: lexora-db
+    plan: free
+    databaseName: lexora
+    ipAllowList: []
