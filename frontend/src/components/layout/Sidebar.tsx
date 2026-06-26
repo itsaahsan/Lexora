@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Upload,
@@ -28,6 +28,12 @@ const bottomItems = [
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <aside className="w-64 h-screen glass flex flex-col fixed left-0 top-0 z-40">
@@ -91,7 +97,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-danger hover:bg-card-hover w-full transition-colors"
         >
           <LogOut size={18} />

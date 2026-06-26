@@ -7,10 +7,16 @@ import Card from "../components/ui/Card";
 export default function Admin() {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/admin/users").then((r) => setUsers(r.data));
-    api.get("/admin/stats").then((r) => setStats(r.data));
+    Promise.all([
+      api.get("/admin/users").then((r) => setUsers(r.data)),
+      api.get("/admin/stats").then((r) => setStats(r.data)),
+    ]).catch((err) => {
+      setError(err.response?.data?.detail || "Failed to load admin data");
+    }).finally(() => setLoading(false));
   }, []);
 
   const toggleActive = async (userId: string, isActive: boolean) => {
@@ -23,7 +29,10 @@ export default function Admin() {
       <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
       <p className="text-text-muted mb-8">System management</p>
 
-      {stats && (
+      {loading && <div className="text-center py-12 text-text-muted">Loading...</div>}
+      {error && <div className="text-center py-12 text-danger">{error}</div>}
+
+      {!loading && !error && stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <Users size={24} className="text-primary" />

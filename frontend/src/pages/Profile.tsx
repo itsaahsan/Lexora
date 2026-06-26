@@ -9,7 +9,7 @@ export default function Profile() {
   const { user, setAuth } = useAuthStore();
   const [fullName, setFullName] = useState(user?.full_name || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -21,9 +21,9 @@ export default function Profile() {
         email,
       });
       setAuth(data, useAuthStore.getState().token!);
-      setToast("Profile updated");
+      setToast({ message: "Profile updated", type: "success" });
     } catch (err: any) {
-      setToast(err.response?.data?.detail || "Update failed");
+      setToast({ message: err.response?.data?.detail || "Update failed", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export default function Profile() {
           {loading ? "Saving..." : "Save Changes"}
         </Button>
       </form>
-      {toast && <Toast message={toast} type="success" onClose={() => setToast(null)} />}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

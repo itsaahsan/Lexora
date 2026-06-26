@@ -23,8 +23,10 @@ export default function Documents() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this document?")) return;
-    await api.delete(`/documents/${id}`);
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    try {
+      await api.delete(`/documents/${id}`);
+      setDocuments((prev) => prev.filter((d) => d.id !== id));
+    } catch {}
   };
 
   const statusColors: Record<string, string> = {

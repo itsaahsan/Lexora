@@ -1,20 +1,33 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, FileText } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Send, Bot, User, FileText, Plus } from "lucide-react";
 import api from "../lib/api";
 import type { Message, Source } from "../types";
-import { useAuthStore } from "../stores/authStore";
 
 export default function Chat() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(
+    searchParams.get("conversation")
+  );
   const messagesEnd = useRef<HTMLDivElement>(null);
-  useAuthStore();
 
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const convParam = searchParams.get("conversation");
+    if (convParam && convParam !== conversationId) {
+      setConversationId(convParam);
+      setMessages([]);
+      api.get(`/conversations/${convParam}/messages`).then((r) => {
+        setMessages(r.data);
+      }).catch(() => {});
+    }
+  }, [searchParams.get("conversation")]);
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -35,6 +48,7 @@ export default function Chat() {
         conversation_id: conversationId,
       });
       setConversationId(data.conversation_id);
+      setSearchParams({ conversation: data.conversation_id });
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -59,9 +73,25 @@ export default function Chat() {
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setConversationId(null);
+    setSearchParams({});
+  };
+
   return (
     <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-4rem)]">
-      <h1 className="text-3xl font-bold mb-6">Chat</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Chat</h1>
+        {messages.length > 0 && (
+          <button
+            onClick={handleNewChat}
+            className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+          >
+            <Plus size={16} /> New Chat
+          </button>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
         {messages.length === 0 && (

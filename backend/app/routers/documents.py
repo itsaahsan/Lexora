@@ -46,7 +46,7 @@ async def upload_document(
     db.refresh(doc)
 
     try:
-        chunk_count = process_document(str(doc.id), file_path, ext)
+        chunk_count = process_document(str(doc.id), file_path, ext.lstrip("."), user_id=str(current_user.id))
         doc.chunk_count = chunk_count
         doc.status = "ready"
     except Exception as e:

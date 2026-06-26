@@ -13,6 +13,7 @@ export default function History() {
   useEffect(() => {
     api.get("/conversations").then((r) => {
       setConversations(r.data.conversations);
+    }).catch(() => {}).finally(() => {
       setLoading(false);
     });
   }, []);
@@ -20,8 +21,10 @@ export default function History() {
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Delete this conversation?")) return;
-    await api.delete(`/conversations/${id}`);
-    setConversations((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await api.delete(`/conversations/${id}`);
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+    } catch {}
   };
 
   return (
@@ -41,7 +44,7 @@ export default function History() {
           {conversations.map((conv) => (
             <div
               key={conv.id}
-              onClick={() => navigate("/chat")}
+              onClick={() => navigate(`/chat?conversation=${conv.id}`)}
               className="glass rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-card-hover transition-colors"
             >
               <div className="flex items-center gap-4">

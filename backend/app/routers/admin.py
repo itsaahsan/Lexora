@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -23,8 +24,8 @@ def list_users(
 @router.put("/users/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: str,
-    role: str = None,
-    is_active: bool = None,
+    role: Optional[str] = Query(None),
+    is_active: Optional[bool] = Query(None),
     admin: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):

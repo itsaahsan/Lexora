@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Upload as UploadIcon, CheckCircle, XCircle } from "lucide-react";
 import api from "../lib/api";
 
@@ -12,21 +12,40 @@ export default function Upload() {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<UploadResult[]>([]);
+  const handleFilesRef = useRef<(files: FileList) => Promise<void>>(null);
+
+  const MAX_SIZE = 50 * 1024 * 1024;
 
   const handleFiles = async (files: FileList) => {
     setUploading(true);
     const newResults: UploadResult[] = [];
 
     for (const file of Array.from(files)) {
+      if (file.size > MAX_SIZE) {
+        newResults.push({
+          filename: file.name,
+          status: "error",
+          message: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 50MB.`,
+        });
+        continue;
+      }
       const formData = new FormData();
       formData.append("file", file);
       try {
         const { data } = await api.post("/documents/upload", formData);
-        newResults.push({
-          filename: file.name,
-          status: "success",
-          message: `${data.chunk_count} chunks created`,
-        });
+        if (data.status === "failed") {
+          newResults.push({
+            filename: file.name,
+            status: "error",
+            message: "Processing failed. Check file content and try again.",
+          });
+        } else {
+          newResults.push({
+            filename: file.name,
+            status: "success",
+            message: `${data.chunk_count} chunks created`,
+          });
+        }
       } catch (err: any) {
         newResults.push({
           filename: file.name,
@@ -40,10 +59,12 @@ export default function Upload() {
     setUploading(false);
   };
 
+  handleFilesRef.current = handleFiles;
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+    if (e.dataTransfer.files) handleFilesRef.current?.(e.dataTransfer.files);
   }, []);
 
   return (

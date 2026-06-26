@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { CheckCircle, XCircle, Info } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -10,15 +10,17 @@ interface ToastProps {
 
 export default function Toast({ message, type = "info", onClose }: ToastProps) {
   const [visible, setVisible] = useState(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     setVisible(true);
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(onClose, 300);
+      setTimeout(() => onCloseRef.current(), 300);
     }, 3000);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, []);
 
   const icons = {
     success: <CheckCircle size={18} className="text-success" />,
