@@ -43,8 +43,9 @@ app.include_router(admin.router, prefix=settings.API_V1_PREFIX, tags=["admin"])
 
 
 @app.get("/")
-def root():
-    return {"message": "Welcome to Lexora API"}
+@app.head("/")
+async def root():
+    return {"message": "Lexora API is running"}
 
 
 @app.get("/health")
