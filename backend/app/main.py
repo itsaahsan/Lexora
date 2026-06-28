@@ -1,6 +1,10 @@
 import logging
+import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
@@ -11,6 +15,8 @@ settings = get_settings()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
 
 @asynccontextmanager
@@ -42,12 +48,18 @@ app.include_router(analytics.router, prefix=settings.API_V1_PREFIX, tags=["analy
 app.include_router(admin.router, prefix=settings.API_V1_PREFIX, tags=["admin"])
 
 
-@app.get("/")
-@app.head("/")
-async def root():
-    return {"message": "Lexora API is running"}
-
-
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "version": settings.VERSION}
+
+
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    @app.head("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        file_path = FRONTEND_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(FRONTEND_DIR / "index.html")
