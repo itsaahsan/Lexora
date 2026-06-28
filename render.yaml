@@ -23,12 +23,15 @@ services:
       - key: ALLOWED_ORIGINS
         value: '["https://lexora-hha8.onrender.com"]'
 
-  - type: web
+  - type: static
     name: lexora
-    runtime: node
     plan: free
     buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && node server.js
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: NODE_VERSION
         value: "22"
