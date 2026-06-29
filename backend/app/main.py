@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
@@ -69,6 +69,11 @@ def root():
         "health": "/health",
         "api": settings.API_V1_PREFIX,
     })
+
+
+@app.head("/", include_in_schema=False)
+def head_root():
+    return Response(status_code=200)
 
 
 if settings.SERVE_FRONTEND and FRONTEND_DIR.exists():
