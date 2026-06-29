@@ -51,11 +51,6 @@ app.include_router(analytics.router, prefix=settings.API_V1_PREFIX, tags=["analy
 app.include_router(admin.router, prefix=settings.API_V1_PREFIX, tags=["admin"])
 
 
-@app.get("/")
-async def root():
-    return {"message": "Lexora API is running"}
-
-
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "version": settings.VERSION}
