@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     FAISS_INDEX_PATH: str = "./faiss_index"
     UPLOAD_DIR: str = "./uploads"
 
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "https://lexora.onrender.com", "https://lexora-hha8.onrender.com"]
 
     class Config:
         env_file = ".env"

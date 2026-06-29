@@ -22,7 +22,10 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dis
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Lexora API...")
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logger.warning(f"Database not available, skipping table creation: {e}")
     yield
     logger.info("Shutting down Lexora API...")
 
@@ -46,6 +49,11 @@ app.include_router(documents.router, prefix=settings.API_V1_PREFIX, tags=["docum
 app.include_router(chat.router, prefix=settings.API_V1_PREFIX, tags=["chat"])
 app.include_router(analytics.router, prefix=settings.API_V1_PREFIX, tags=["analytics"])
 app.include_router(admin.router, prefix=settings.API_V1_PREFIX, tags=["admin"])
+
+
+@app.get("/")
+async def root():
+    return {"message": "Lexora API is running"}
 
 
 @app.get("/health")
