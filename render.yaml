@@ -21,6 +21,6 @@ services:
       - key: UPLOAD_DIR
         value: ./uploads
       - key: ALLOWED_ORIGINS
-        value: '["https://lexora-hha8.onrender.com"]'
+        value: '["https://lexora-backend-bkk4.onrender.com"]'
       - key: NODE_VERSION
         value: "22"
