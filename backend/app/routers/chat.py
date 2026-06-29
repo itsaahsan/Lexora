@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -79,14 +80,18 @@ def get_conversation_messages(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    try:
+        conv_uuid = uuid.UUID(conv_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Conversation not found")
     conv = db.query(Conversation).filter(
-        Conversation.id == conv_id,
+        Conversation.id == conv_uuid,
         Conversation.user_id == current_user.id,
     ).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     messages = db.query(Message).filter(
-        Message.conversation_id == conv_id
+        Message.conversation_id == conv_uuid
     ).order_by(Message.created_at).all()
     return [MessageResponse.model_validate(m) for m in messages]
 
@@ -97,13 +102,17 @@ def delete_conversation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    try:
+        conv_uuid = uuid.UUID(conv_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Conversation not found")
     conv = db.query(Conversation).filter(
-        Conversation.id == conv_id,
+        Conversation.id == conv_uuid,
         Conversation.user_id == current_user.id,
     ).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    db.query(Message).filter(Message.conversation_id == conv_id).delete()
+    db.query(Message).filter(Message.conversation_id == conv_uuid).delete()
     db.delete(conv)
     db.commit()
     return {"detail": "Conversation deleted"}

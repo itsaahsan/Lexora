@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import JSON
+
 from app.database import Base
 
 
@@ -22,5 +24,6 @@ class Message(Base):
     conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False)
     role = Column(String(20), nullable=False)
     content = Column(Text, nullable=False)
-    sources = Column(JSONB, default=list)
+    sources = Column(JSON, default=list)
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

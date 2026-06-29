@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
@@ -12,6 +12,10 @@ from app.database import engine, Base
 from app.routers import auth, documents, chat, analytics, admin
 
 settings = get_settings()
+
+origins = list(settings.ALLOWED_ORIGINS)
+if settings.FRONTEND_URL and settings.FRONTEND_URL not in origins:
+    origins.append(settings.FRONTEND_URL)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,7 +42,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,7 +60,18 @@ def health_check():
     return {"status": "healthy", "version": settings.VERSION}
 
 
-if FRONTEND_DIR.exists():
+@app.get("/", include_in_schema=False)
+def root():
+    return JSONResponse({
+        "name": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "docs": "/docs",
+        "health": "/health",
+        "api": settings.API_V1_PREFIX,
+    })
+
+
+if settings.SERVE_FRONTEND and FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
     @app.get("/{full_path:path}")

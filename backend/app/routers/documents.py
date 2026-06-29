@@ -76,7 +76,11 @@ def get_document(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    doc = db.query(Document).filter(Document.id == doc_id, Document.user_id == current_user.id).first()
+    try:
+        doc_uuid = uuid.UUID(doc_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc = db.query(Document).filter(Document.id == doc_uuid, Document.user_id == current_user.id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     return DocumentResponse.model_validate(doc)
@@ -88,7 +92,11 @@ def delete_document(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    doc = db.query(Document).filter(Document.id == doc_id, Document.user_id == current_user.id).first()
+    try:
+        doc_uuid = uuid.UUID(doc_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc = db.query(Document).filter(Document.id == doc_uuid, Document.user_id == current_user.id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     db.delete(doc)

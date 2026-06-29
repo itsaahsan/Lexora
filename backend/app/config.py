@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     FAISS_INDEX_PATH: str = "./faiss_index"
     UPLOAD_DIR: str = "./uploads"
 
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "https://lexora-backend-bkk4.onrender.com"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
+
+    FRONTEND_URL: str = ""
+    SERVE_FRONTEND: bool = False
 
     class Config:
         env_file = ".env"
