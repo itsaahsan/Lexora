@@ -2,6 +2,13 @@
 
 AI-Powered RAG Document QA System. Upload documents, ask questions, get answers with source citations.
 
+## Live Demo
+
+- **App**: https://lexora-xtgo.onrender.com
+- **API Docs**: https://lexora-xtgo.onrender.com/docs
+
+> Hosted on Render's free tier — the first request after inactivity may take a few seconds to spin up.
+
 ## Tech Stack
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, Zustand
@@ -10,14 +17,18 @@ AI-Powered RAG Document QA System. Upload documents, ask questions, get answers 
 - **Vector DB**: FAISS
 - **Auth**: JWT
 
+## Why These Choices
+
+- **FAISS over a managed vector DB** — keeps the retrieval layer self-hosted and free-tier friendly, since Pinecone/Weaviate-style managed services add cost and an external dependency that isn't needed at this scale.
+- **Gemini over OpenAI** — free-tier API access made it practical to iterate on prompt and chunking strategy without hitting cost limits during development.
+- **Source citations returned with every answer** — RAG systems are only trustworthy if a user can verify where an answer came from, so citations aren't an add-on, they're part of the core response contract.
+
 ## Quick Start
 
 ### Docker (Recommended)
-
 ```bash
 docker-compose up --build
 ```
-
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000/docs
 
@@ -68,3 +79,7 @@ VITE_API_URL=http://localhost:8000/api
 ## License
 
 MIT
+
+## Author
+
+**Amimul Ahsan** - [GitHub](https://github.com/itsaahsan)
