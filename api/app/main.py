@@ -47,7 +47,8 @@ app = FastAPI(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {exc}")
+    import traceback
+    logger.error(f"Unhandled exception: {exc}\n{traceback.format_exc()}")
     origin = request.headers.get("origin", "")
     headers = {
         "Access-Control-Allow-Origin": origin or "*",
@@ -57,7 +58,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     }
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"},
+        content={"detail": str(exc)},
         headers=headers,
     )
 

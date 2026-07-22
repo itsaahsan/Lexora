@@ -1,9 +1,25 @@
 import os
 import json
-import numpy as np
-import faiss
-from google import genai
-from google.genai import types
+import logging
+
+logger = logging.getLogger(__name__)
+
+try:
+    import numpy as np
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    logger.warning("FAISS not available, RAG features will be limited")
+
+try:
+    from google import genai
+    from google.genai import types
+    GENAI_AVAILABLE = True
+except ImportError:
+    GENAI_AVAILABLE = False
+    logger.warning("google-genai not available, AI generation will be limited")
+
 from app.config import get_settings
 from app.schemas.chat import Source
 
@@ -79,6 +95,10 @@ def get_query_embedding(text: str) -> list[float]:
 
 
 def add_documents_to_index(document_id: str, chunks: list[str], metadatas: list[dict]):
+    if not FAISS_AVAILABLE:
+        logger.warning("FAISS not available, skipping index update")
+        return
+
     index = _get_index()
     embeddings = get_embeddings(chunks)
     vectors = np.array(embeddings, dtype=np.float32)
@@ -95,6 +115,9 @@ def add_documents_to_index(document_id: str, chunks: list[str], metadatas: list[
 
 
 def search_similar(query: str, k: int = 5, user_id: str = None) -> list[dict]:
+    if not FAISS_AVAILABLE:
+        return []
+
     index = _get_index()
     if index.ntotal == 0:
         return []
@@ -158,11 +181,23 @@ Question: {query}"""
 
 
 def retrieve_and_generate(query: str, user_id: str) -> dict:
-    results = search_similar(query, k=5, user_id=user_id)
+    if not GENAI_AVAILABLE:
+        return {
+            "answer": "AI services are not available in this environment. Please try again later.",
+            "sources": [],
+        }
+
+    results = []
+    if FAISS_AVAILABLE:
+        try:
+            results = search_similar(query, k=5, user_id=user_id)
+        except Exception as e:
+            logger.warning(f"Search failed: {e}")
 
     try:
         answer = generate_answer(query, results)
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Generate failed: {e}")
         if results:
             answer = "I found relevant documents but couldn't generate an answer right now. Please try again later.\n\n"
             answer += "Matched content:\n"

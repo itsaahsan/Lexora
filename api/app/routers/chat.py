@@ -42,7 +42,15 @@ def chat(
     db.add(user_msg)
     db.commit()
 
-    result = retrieve_and_generate(request.message, current_user.id)
+    try:
+        result = retrieve_and_generate(request.message, current_user.id)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"RAG error: {e}")
+        result = {
+            "answer": "I'm having trouble processing your request right now. The AI service may be temporarily unavailable. Please try again later.",
+            "sources": [],
+        }
 
     assistant_msg = Message(
         conversation_id=conversation.id,

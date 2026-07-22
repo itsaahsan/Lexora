@@ -26,13 +26,7 @@ async def upload_document(
     if ext not in allowed_types:
         raise HTTPException(status_code=400, detail=f"File type {ext} not supported")
 
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    file_id = str(uuid.uuid4())
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}{ext}")
-
     content = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(content)
 
     doc = Document(
         user_id=current_user.id,
@@ -46,10 +40,17 @@ async def upload_document(
     db.refresh(doc)
 
     try:
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        file_id = str(doc.id)
+        file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}{ext}")
+        with open(file_path, "wb") as f:
+            f.write(content)
         chunk_count = process_document(str(doc.id), file_path, ext.lstrip("."), user_id=str(current_user.id))
         doc.chunk_count = chunk_count
         doc.status = "ready"
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Document processing error: {e}")
         doc.status = "failed"
         doc.chunk_count = 0
 
