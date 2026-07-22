@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:5173",
-        "https://frontend-one-mocha-vsug7dnwbw.vercel.app",
+        "https://lexora-blond-delta.vercel.app",
     ]
 
     FRONTEND_URL: str = ""

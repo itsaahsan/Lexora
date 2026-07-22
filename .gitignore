@@ -11,3 +11,4 @@ faiss_index/
 venv/
 *.egg-info/
 backend/venv/
+.vercel
