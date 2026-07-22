@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from functools import lru_cache
 
 
 class Settings(BaseSettings):
@@ -20,7 +19,10 @@ class Settings(BaseSettings):
     FAISS_INDEX_PATH: str = "./faiss_index"
     UPLOAD_DIR: str = "./uploads"
 
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "https://lexora-blond-delta.vercel.app",
+    ]
 
     FRONTEND_URL: str = ""
     SERVE_FRONTEND: bool = False
@@ -30,6 +32,5 @@ class Settings(BaseSettings):
         case_sensitive = True
 
 
-@lru_cache()
 def get_settings() -> Settings:
     return Settings()
