@@ -4,10 +4,9 @@ AI-Powered RAG Document QA System. Upload documents, ask questions, get answers 
 
 ## Live Demo
 
-- **App**: https://lexora-xtgo.onrender.com
-- **API Docs**: https://lexora-xtgo.onrender.com/docs
-
-> Hosted on Render's free tier — the first request after inactivity may take a few seconds to spin up.
+- **App**: https://lexora-blond-delta.vercel.app
+- **API**: https://api-lilac-tau-75.vercel.app
+- **API Docs**: https://api-lilac-tau-75.vercel.app/docs
 
 ## Tech Stack
 
@@ -17,11 +16,17 @@ AI-Powered RAG Document QA System. Upload documents, ask questions, get answers 
 - **Vector DB**: FAISS
 - **Auth**: JWT
 
-## Why These Choices
+## Project Structure
 
-- **FAISS over a managed vector DB** — keeps the retrieval layer self-hosted and free-tier friendly, since Pinecone/Weaviate-style managed services add cost and an external dependency that isn't needed at this scale.
-- **Gemini over OpenAI** — free-tier API access made it practical to iterate on prompt and chunking strategy without hitting cost limits during development.
-- **Source citations returned with every answer** — RAG systems are only trustworthy if a user can verify where an answer came from, so citations aren't an add-on, they're part of the core response contract.
+```
+Lexora/
+├── api/                  # Vercel serverless API (FastAPI + Mangum)
+├── backend/              # Render deployment backend (FastAPI)
+├── frontend/             # React SPA (Vite)
+├── vercel.json           # Vercel routing config
+├── render.yaml           # Render deployment config
+└── .github/workflows/    # CI pipeline
+```
 
 ## Quick Start
 
@@ -50,11 +55,16 @@ npm run dev
 
 ## Environment Variables
 
-**backend/.env**
+**backend/.env** (or api/.env)
 ```
 DATABASE_URL=postgresql://user:pass@host/db
 SECRET_KEY=your-secret-key
 GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+FAISS_INDEX_PATH=./faiss_index
+UPLOAD_DIR=./uploads
+ALLOWED_ORIGINS=["http://localhost:5173"]
 ```
 
 **frontend/.env**
@@ -69,12 +79,31 @@ VITE_API_URL=http://localhost:8000/api
 | POST | /api/auth/register | Register |
 | POST | /api/auth/login | Login |
 | GET | /api/auth/me | Current user |
+| PUT | /api/auth/profile | Update profile |
 | POST | /api/documents/upload | Upload document |
 | GET | /api/documents | List documents |
+| GET | /api/documents/{id} | Get document |
 | DELETE | /api/documents/{id} | Delete document |
 | POST | /api/chat | Send message |
 | GET | /api/conversations | List conversations |
-| GET | /api/analytics/overview | Analytics |
+| GET | /api/conversations/{id}/messages | Get messages |
+| DELETE | /api/conversations/{id} | Delete conversation |
+| GET | /api/analytics/overview | Analytics overview |
+| GET | /api/analytics/documents | Document analytics |
+
+## Deployment
+
+### Vercel (API + Frontend)
+```bash
+# Deploy API
+cd api && vercel --prod
+
+# Deploy Frontend
+cd frontend && vercel --prod
+```
+
+### Render (Backend)
+Auto-deploys from `main` branch via `render.yaml`.
 
 ## License
 

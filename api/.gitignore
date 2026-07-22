@@ -1,1 +1,6 @@
-.vercel
+.vercel/
+__pycache__/
+*.pyc
+.env
+uploads/
+faiss_index/
