@@ -40,9 +40,10 @@ async def upload_document(
     db.refresh(doc)
 
     try:
-        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        upload_dir = "/tmp" if os.environ.get("VERCEL") else settings.UPLOAD_DIR
+        os.makedirs(upload_dir, exist_ok=True)
         file_id = str(doc.id)
-        file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}{ext}")
+        file_path = os.path.join(upload_dir, f"{file_id}{ext}")
         with open(file_path, "wb") as f:
             f.write(content)
         chunk_count = process_document(str(doc.id), file_path, ext.lstrip("."), user_id=str(current_user.id))
