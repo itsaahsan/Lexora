@@ -21,18 +21,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.info(f"CORS allowed origins: {origins}")
 
-
-def is_allowed_origin(origin: str) -> bool:
-    """Check if origin is allowed, supporting Vercel preview deployments."""
-    if not origin:
-        return False
-    if origin in origins:
-        return True
-    # Allow Vercel preview deployments
-    if origin.endswith(".vercel.app"):
-        return True
-    return False
-
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
 
@@ -59,29 +47,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
-
-
-@app.options("/{path:path}")
-async def cors_preflight(path: str, request: Request):
-    origin = request.headers.get("origin", "")
-    if is_allowed_origin(origin):
-        return Response(
-            status_code=200,
-            headers={
-                "Access-Control-Allow-Origin": origin,
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Allow-Credentials": "true",
-                "Access-Control-Max-Age": "86400",
-            },
-        )
-    return Response(status_code=403)
 
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX, tags=["auth"])
