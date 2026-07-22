@@ -44,6 +44,24 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {exc}")
+    origin = request.headers.get("origin", "")
+    headers = {
+        "Access-Control-Allow-Origin": origin or "*",
+        "Access-Control-Allow-Methods": "*",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Allow-Credentials": "true",
+    }
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers=headers,
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
