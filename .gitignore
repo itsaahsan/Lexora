@@ -33,3 +33,5 @@ faiss_index/
 # OS
 .DS_Store
 Thumbs.db
+
+.vercel

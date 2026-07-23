@@ -5,8 +5,7 @@ AI-Powered RAG Document QA System. Upload documents, ask questions, get answers 
 ## Live Demo
 
 - **App**: https://lexora-blond-delta.vercel.app
-- **API**: https://api-lilac-tau-75.vercel.app
-- **API Docs**: https://api-lilac-tau-75.vercel.app/docs
+- **API Docs**: https://lexora-blond-delta.vercel.app/api/docs
 
 ## Tech Stack
 
@@ -15,16 +14,15 @@ AI-Powered RAG Document QA System. Upload documents, ask questions, get answers 
 - **Database**: PostgreSQL (Neon)
 - **Vector DB**: FAISS
 - **Auth**: JWT
+- **Deployment**: Vercel (Serverless)
 
 ## Project Structure
 
 ```
 Lexora/
 ├── api/                  # Vercel serverless API (FastAPI + Mangum)
-├── backend/              # Render deployment backend (FastAPI)
 ├── frontend/             # React SPA (Vite)
 ├── vercel.json           # Vercel routing config
-├── render.yaml           # Render deployment config
 └── .github/workflows/    # CI pipeline
 ```
 
@@ -41,7 +39,7 @@ docker-compose up --build
 
 **Backend:**
 ```bash
-cd backend
+cd api
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
@@ -55,7 +53,7 @@ npm run dev
 
 ## Environment Variables
 
-**backend/.env** (or api/.env)
+**api/.env**
 ```
 DATABASE_URL=postgresql://user:pass@host/db
 SECRET_KEY=your-secret-key
@@ -93,17 +91,16 @@ VITE_API_URL=http://localhost:8000/api
 
 ## Deployment
 
-### Vercel (API + Frontend)
+### Vercel (Recommended)
 ```bash
-# Deploy API
-cd api && vercel --prod
+# Install Vercel CLI
+npm i -g vercel
 
-# Deploy Frontend
-cd frontend && vercel --prod
+# Deploy
+vercel --prod
 ```
 
-### Render (Backend)
-Auto-deploys from `main` branch via `render.yaml`.
+Or connect your GitHub repo to Vercel for automatic deployments.
 
 ## License
 
