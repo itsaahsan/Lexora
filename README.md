@@ -5,7 +5,6 @@ AI-Powered RAG Document QA System. Upload documents, ask questions, get answers 
 ## Live Demo
 
 - **App**: https://lexora-blond-delta.vercel.app
-- **API Docs**: https://lexora-blond-delta.vercel.app/api/docs
 
 ## Tech Stack
 
