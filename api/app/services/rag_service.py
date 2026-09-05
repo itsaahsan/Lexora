@@ -13,19 +13,21 @@ except ImportError:
     logger.warning("FAISS not available, RAG features will be limited")
 
 try:
-    from google import genai
-    from google.genai import types
-    GENAI_AVAILABLE = True
+    try:
+        from mistralai import Mistral
+    except ImportError:
+        from mistralai.client import Mistral
+    MISTRAL_AVAILABLE = True
 except ImportError:
-    GENAI_AVAILABLE = False
-    logger.warning("google-genai not available, AI generation will be limited")
+    MISTRAL_AVAILABLE = False
+    logger.warning("mistralai not available, AI generation will be limited")
 
 from app.config import get_settings
 from app.schemas.chat import Source
 
 settings = get_settings()
 
-EMBEDDING_DIM = 3072
+EMBEDDING_DIM = 1024  # mistral-embed dimension
 
 _client = None
 
@@ -33,7 +35,12 @@ _client = None
 def _ensure_client():
     global _client
     if _client is None:
-        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        if not MISTRAL_AVAILABLE:
+            raise RuntimeError("mistralai package not installed")
+        if not settings.MISTRAL_API_KEY:
+            raise RuntimeError("MISTRAL_API_KEY is not set")
+        _client = Mistral(api_key=settings.MISTRAL_API_KEY)
+    return _client
 
 
 _index = None
@@ -46,8 +53,16 @@ def _get_index():
     if _index is None:
         index_path = os.path.join(settings.FAISS_INDEX_PATH, "index.faiss")
         if os.path.exists(index_path):
-            _index = faiss.read_index(index_path)
-            _load_metadata()
+            try:
+                loaded = faiss.read_index(index_path)
+                if loaded.d != EMBEDDING_DIM:
+                    _index = faiss.IndexFlatL2(EMBEDDING_DIM)
+                else:
+                    _index = loaded
+                    _load_metadata()
+            except Exception:
+                os.makedirs(settings.FAISS_INDEX_PATH, exist_ok=True)
+                _index = faiss.IndexFlatL2(EMBEDDING_DIM)
         else:
             os.makedirs(settings.FAISS_INDEX_PATH, exist_ok=True)
             _index = faiss.IndexFlatL2(EMBEDDING_DIM)
@@ -77,21 +92,21 @@ def _save_index():
 
 
 def get_embeddings(texts: list[str]) -> list[list[float]]:
-    _ensure_client()
-    result = _client.models.embed_content(
-        model=settings.GEMINI_EMBEDDING_MODEL,
-        contents=texts,
+    client = _ensure_client()
+    result = client.embeddings.create(
+        model=settings.MISTRAL_EMBEDDING_MODEL,
+        inputs=texts,
     )
-    return [e.values for e in result.embeddings]
+    return [d.embedding for d in result.data]
 
 
 def get_query_embedding(text: str) -> list[float]:
-    _ensure_client()
-    result = _client.models.embed_content(
-        model=settings.GEMINI_EMBEDDING_MODEL,
-        contents=[text],
+    client = _ensure_client()
+    result = client.embeddings.create(
+        model=settings.MISTRAL_EMBEDDING_MODEL,
+        inputs=[text],
     )
-    return result.embeddings[0].values
+    return result.data[0].embedding
 
 
 def add_documents_to_index(document_id: str, chunks: list[str], metadatas: list[dict]):
@@ -147,7 +162,7 @@ def search_similar(query: str, k: int = 5, user_id: str = None) -> list[dict]:
 
 
 def generate_answer(query: str, context_chunks: list[dict]) -> str:
-    _ensure_client()
+    client = _ensure_client()
 
     if context_chunks:
         context = "\n\n".join([
@@ -169,19 +184,27 @@ No relevant documents were found. Answer the question using your general knowled
 
 Question: {query}"""
 
-    response = _client.models.generate_content(
-        model=settings.GEMINI_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.3,
-            max_output_tokens=1000,
-        ),
-    )
-    return response.text
+    candidates = [settings.MISTRAL_MODEL]
+    for m in ["ministral-8b-latest", "ministral-3b-latest", "mistral-small-latest", "mistral-medium-latest"]:
+        if m not in candidates:
+            candidates.append(m)
+
+    last_err = None
+    for model in candidates:
+        try:
+            response = client.chat.complete(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            last_err = e
+            continue
+    raise last_err if last_err else RuntimeError("Mistral chat failed")
 
 
 def retrieve_and_generate(query: str, user_id: str) -> dict:
-    if not GENAI_AVAILABLE:
+    if not MISTRAL_AVAILABLE:
         return {
             "answer": "AI services are not available in this environment. Please try again later.",
             "sources": [],

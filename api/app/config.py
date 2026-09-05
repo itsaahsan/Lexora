@@ -14,9 +14,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
-    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
+    MISTRAL_API_KEY: str = ""
+    MISTRAL_MODEL: str = "ministral-8b-latest"
+    MISTRAL_EMBEDDING_MODEL: str = "mistral-embed"
 
     FAISS_INDEX_PATH: str = "./faiss_index"
     UPLOAD_DIR: str = "./uploads"

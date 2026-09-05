@@ -9,7 +9,7 @@ AI-Powered RAG Document QA System. Upload documents, ask questions, get answers 
 ## Tech Stack
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, Zustand
-- **Backend**: Python, FastAPI, Google Gemini, SQLAlchemy
+- **Backend**: Python, FastAPI, Mistral AI, SQLAlchemy
 - **Database**: PostgreSQL (Neon)
 - **Vector DB**: FAISS
 - **Auth**: JWT
@@ -56,9 +56,9 @@ npm run dev
 ```
 DATABASE_URL=postgresql://user:pass@host/db
 SECRET_KEY=your-secret-key
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-2.5-flash
-GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+MISTRAL_API_KEY=your-mistral-api-key
+MISTRAL_MODEL=mistral-large-latest
+MISTRAL_EMBEDDING_MODEL=mistral-embed
 FAISS_INDEX_PATH=./faiss_index
 UPLOAD_DIR=./uploads
 ALLOWED_ORIGINS=["http://localhost:5173"]
