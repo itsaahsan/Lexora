@@ -57,7 +57,7 @@ npm run dev
 DATABASE_URL=postgresql://user:pass@host/db
 SECRET_KEY=your-secret-key
 MISTRAL_API_KEY=your-mistral-api-key
-MISTRAL_MODEL=mistral-large-latest
+MISTRAL_MODEL=ministral-8b-latest
 MISTRAL_EMBEDDING_MODEL=mistral-embed
 FAISS_INDEX_PATH=./faiss_index
 UPLOAD_DIR=./uploads
