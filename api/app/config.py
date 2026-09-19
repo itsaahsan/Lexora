@@ -1,5 +1,5 @@
 import os
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -28,6 +28,17 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = ""
     SERVE_FRONTEND: bool = False
+
+    @model_validator(mode="after")
+    def _vercel_writable_paths(self):
+        # Vercel serverless filesystem is read-only except /tmp. Relative
+        # defaults like ./faiss_index would crash document indexing (chunks=0).
+        if os.environ.get("VERCEL"):
+            if not os.path.isabs(self.FAISS_INDEX_PATH):
+                self.FAISS_INDEX_PATH = "/tmp/lexora_faiss"
+            if not os.path.isabs(self.UPLOAD_DIR):
+                self.UPLOAD_DIR = "/tmp/lexora_uploads"
+        return self
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
