@@ -23,7 +23,9 @@ try:
             db_url,
             poolclass=NullPool,
             pool_pre_ping=False,
-            connect_args={"connect_timeout": 5, "options": "-c statement_timeout=10000"},
+            # NOTE: no "-c statement_timeout" in options — pooled hosts
+            # (Neon pooler / pgbouncer) reject it as a startup parameter.
+            connect_args={"connect_timeout": 5},
         )
     else:
         engine = create_engine(
