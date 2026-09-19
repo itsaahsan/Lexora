@@ -1,11 +1,15 @@
 import os
 import json
-import numpy as np
-import faiss
-try:
-    from mistralai import Mistral
-except ImportError:
-    from mistralai.client import Mistral
+import logging
+
+logger = logging.getLogger(__name__)
+
+# NOTE: numpy / faiss / mistralai are intentionally NOT imported at module load.
+# They are heavy (~100MB+, 1-2s cold start) and are not needed for fast paths
+# like /api/auth/register. They are imported lazily inside helpers below.
+FAISS_AVAILABLE = None
+MISTRAL_AVAILABLE = None
+
 from app.config import get_settings
 from app.schemas.chat import Source
 
@@ -16,13 +20,44 @@ EMBEDDING_DIM = 1024  # mistral-embed dimension
 _client = None
 
 
+def _get_mistral_cls():
+    try:
+        from mistralai import Mistral
+        return Mistral
+    except ImportError:
+        try:
+            from mistralai.client import Mistral as LegacyMistral
+            return LegacyMistral
+        except ImportError:
+            return None
+
+
 def _ensure_client():
     global _client
     if _client is None:
+        MistralCls = _get_mistral_cls()
+        if MistralCls is None:
+            raise RuntimeError("mistralai package not installed")
         if not settings.MISTRAL_API_KEY:
             raise RuntimeError("MISTRAL_API_KEY is not set")
-        _client = Mistral(api_key=settings.MISTRAL_API_KEY)
+        _client = MistralCls(api_key=settings.MISTRAL_API_KEY)
     return _client
+
+
+def _require_faiss():
+    try:
+        import faiss
+        return faiss
+    except ImportError:
+        return None
+
+
+def _require_numpy():
+    try:
+        import numpy as np
+        return np
+    except ImportError:
+        return None
 
 
 _index = None
@@ -32,6 +67,9 @@ _metadata_map = []
 
 def _get_index():
     global _index
+    faiss = _require_faiss()
+    if faiss is None:
+        raise RuntimeError("FAISS not available")
     if _index is None:
         index_path = os.path.join(settings.FAISS_INDEX_PATH, "index.faiss")
         if os.path.exists(index_path):
@@ -69,6 +107,9 @@ def _save_metadata():
 
 
 def _save_index():
+    faiss = _require_faiss()
+    if faiss is None:
+        return
     index_path = os.path.join(settings.FAISS_INDEX_PATH, "index.faiss")
     faiss.write_index(_index, index_path)
     _save_metadata()
@@ -93,7 +134,16 @@ def get_query_embedding(text: str) -> list[float]:
 
 
 def add_documents_to_index(document_id: str, chunks: list[str], metadatas: list[dict]):
-    index = _get_index()
+    np = _require_numpy()
+    faiss = _require_faiss()
+    if np is None or faiss is None:
+        logger.warning("FAISS/numpy not available, skipping index update")
+        return len(chunks)
+    try:
+        index = _get_index()
+    except RuntimeError:
+        logger.warning("FAISS not available, skipping index update")
+        return len(chunks)
     embeddings = get_embeddings(chunks)
     vectors = np.array(embeddings, dtype=np.float32)
     index.add(vectors)
@@ -109,7 +159,13 @@ def add_documents_to_index(document_id: str, chunks: list[str], metadatas: list[
 
 
 def search_similar(query: str, k: int = 5, user_id: str = None) -> list[dict]:
-    index = _get_index()
+    np = _require_numpy()
+    if np is None:
+        return []
+    try:
+        index = _get_index()
+    except RuntimeError:
+        return []
     if index.ntotal == 0:
         return []
 
@@ -180,7 +236,16 @@ Question: {query}"""
 
 
 def retrieve_and_generate(query: str, user_id: str) -> dict:
-    results = search_similar(query, k=5, user_id=user_id)
+    if _get_mistral_cls() is None:
+        return {
+            "answer": "AI services are not available in this environment. Please try again later.",
+            "sources": [],
+        }
+    try:
+        results = search_similar(query, k=5, user_id=user_id)
+    except Exception as e:
+        logger.warning(f"Search failed: {e}")
+        results = []
 
     try:
         answer = generate_answer(query, results)

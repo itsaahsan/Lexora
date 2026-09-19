@@ -15,23 +15,55 @@ export default function Register() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (useAuthStore.getState().token) navigate("/dashboard", { replace: true });
-  }, []);
+    if (useAuthStore.getState().token) {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    // Warm up the serverless backend while the user is typing, so the
+    // first POST /auth/register doesn't pay the full cold start (5-10s).
+    // Fire-and-forget: failures are ignored.
+    let cancelled = false;
+    const warm = () => {
+      if (cancelled) return;
+      fetch("/health").catch(() => {});
+      api.get("/health").catch(() => {});
+    };
+    warm();
+    const t = setTimeout(warm, 2500);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setError("Email and password are required");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
       const { data } = await api.post("/auth/register", {
-        email,
+        email: trimmedEmail,
         password,
-        full_name: fullName,
-      });
+        full_name: fullName.trim() || undefined,
+      }, { timeout: 30000 });
       setAuth(data.user, data.access_token);
       navigate("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed");
+      if (err.code === "ECONNABORTED") {
+        setError("Server is waking up — please try again in a few seconds");
+      } else {
+        setError(err.response?.data?.detail || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }

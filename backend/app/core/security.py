@@ -12,7 +12,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    # gensalt default is 12 rounds (~300ms locally, 1s+ on 1-vCPU serverless).
+    # 11 rounds is ~2x faster and still secure for signup latency.
+    # verify_password works with hashes of any rounds, so existing users keep working.
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=11)).decode("utf-8")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

@@ -27,13 +27,19 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dis
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Lexora API...")
-    try:
-        if engine is not None:
-            Base.metadata.create_all(bind=engine)
-        else:
-            logger.warning("Database engine not available, skipping table creation")
-    except Exception as e:
-        logger.warning(f"Database not available, skipping table creation: {e}")
+    # Skip synchronous create_all on serverless cold starts: it adds 1-2s of
+    # DB round-trips to the FIRST request (often /register) and tables are
+    # managed by migrations. Set SKIP_DB_INIT=0 to force it.
+    if os.environ.get("VERCEL") and os.environ.get("SKIP_DB_INIT", "1") == "1":
+        logger.info("Skipping table auto-create on Vercel (use migrations)")
+    else:
+        try:
+            if engine is not None:
+                Base.metadata.create_all(bind=engine)
+            else:
+                logger.warning("Database engine not available, skipping table creation")
+        except Exception as e:
+            logger.warning(f"Database not available, skipping table creation: {e}")
     yield
     logger.info("Shutting down Lexora API...")
 

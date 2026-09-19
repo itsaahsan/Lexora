@@ -4,23 +4,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-try:
-    import numpy as np
-    import faiss
-    FAISS_AVAILABLE = True
-except ImportError:
-    FAISS_AVAILABLE = False
-    logger.warning("FAISS not available, RAG features will be limited")
-
-try:
-    try:
-        from mistralai import Mistral
-    except ImportError:
-        from mistralai.client import Mistral
-    MISTRAL_AVAILABLE = True
-except ImportError:
-    MISTRAL_AVAILABLE = False
-    logger.warning("mistralai not available, AI generation will be limited")
+# NOTE: numpy / faiss / mistralai are intentionally NOT imported at module load.
+# They are heavy (~100MB+, 1-2s cold start) and are not needed for fast paths
+# like /api/auth/register. They are imported lazily inside helpers below.
 
 from app.config import get_settings
 from app.schemas.chat import Source
@@ -30,16 +16,49 @@ settings = get_settings()
 EMBEDDING_DIM = 1024  # mistral-embed dimension
 
 _client = None
+_MistralCls = None
+
+
+def _get_mistral_cls():
+    global _MistralCls
+    if _MistralCls is not None:
+        return _MistralCls
+    try:
+        try:
+            from mistralai import Mistral as _M
+        except ImportError:
+            from mistralai.client import Mistral as _M
+        _MistralCls = _M
+        return _M
+    except ImportError:
+        return None
+
+
+def _require_faiss():
+    try:
+        import faiss as _faiss
+        return _faiss
+    except ImportError:
+        return None
+
+
+def _require_numpy():
+    try:
+        import numpy as _np
+        return _np
+    except ImportError:
+        return None
 
 
 def _ensure_client():
     global _client
     if _client is None:
-        if not MISTRAL_AVAILABLE:
+        MistralCls = _get_mistral_cls()
+        if MistralCls is None:
             raise RuntimeError("mistralai package not installed")
         if not settings.MISTRAL_API_KEY:
             raise RuntimeError("MISTRAL_API_KEY is not set")
-        _client = Mistral(api_key=settings.MISTRAL_API_KEY)
+        _client = MistralCls(api_key=settings.MISTRAL_API_KEY)
     return _client
 
 
@@ -50,6 +69,9 @@ _metadata_map = []
 
 def _get_index():
     global _index
+    faiss = _require_faiss()
+    if faiss is None:
+        raise RuntimeError("FAISS not available")
     if _index is None:
         index_path = os.path.join(settings.FAISS_INDEX_PATH, "index.faiss")
         if os.path.exists(index_path):
@@ -86,6 +108,9 @@ def _save_metadata():
 
 
 def _save_index():
+    faiss = _require_faiss()
+    if faiss is None or _index is None:
+        return
     index_path = os.path.join(settings.FAISS_INDEX_PATH, "index.faiss")
     faiss.write_index(_index, index_path)
     _save_metadata()
@@ -110,9 +135,10 @@ def get_query_embedding(text: str) -> list[float]:
 
 
 def add_documents_to_index(document_id: str, chunks: list[str], metadatas: list[dict]):
-    if not FAISS_AVAILABLE:
+    np = _require_numpy()
+    if np is None or _require_faiss() is None:
         logger.warning("FAISS not available, skipping index update")
-        return
+        return len(chunks)
 
     index = _get_index()
     embeddings = get_embeddings(chunks)
@@ -130,7 +156,8 @@ def add_documents_to_index(document_id: str, chunks: list[str], metadatas: list[
 
 
 def search_similar(query: str, k: int = 5, user_id: str = None) -> list[dict]:
-    if not FAISS_AVAILABLE:
+    np = _require_numpy()
+    if np is None or _require_faiss() is None:
         return []
 
     index = _get_index()
@@ -204,18 +231,17 @@ Question: {query}"""
 
 
 def retrieve_and_generate(query: str, user_id: str) -> dict:
-    if not MISTRAL_AVAILABLE:
+    if _get_mistral_cls() is None:
         return {
             "answer": "AI services are not available in this environment. Please try again later.",
             "sources": [],
         }
 
     results = []
-    if FAISS_AVAILABLE:
-        try:
-            results = search_similar(query, k=5, user_id=user_id)
-        except Exception as e:
-            logger.warning(f"Search failed: {e}")
+    try:
+        results = search_similar(query, k=5, user_id=user_id)
+    except Exception as e:
+        logger.warning(f"Search failed: {e}")
 
     try:
         answer = generate_answer(query, results)
